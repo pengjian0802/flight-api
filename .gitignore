@@ -1,0 +1,19 @@
+# 通用忽略规则
+.idea/
+*.iml
+.gradle/
+build/
+target/
+out/
+.idea_modules/
+*.log
+*.tmp
+*.temp
+
+# 依赖缓存
+.venv/
+node_modules/
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
