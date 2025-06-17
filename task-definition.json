@@ -1,0 +1,32 @@
+{
+  "family": "springboot-task-definition",
+  "containerDefinitions": [
+    {
+      "name": "springboot-container",
+      "image": "1234567890.dkr.ecr.us-east-1.amazonaws.com/springboot-app:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "memory": "512",
+      "cpu": "256",
+      "environment": [
+        {
+          "name": "SPRING_PROFILES_ACTIVE",
+          "value": "prod"
+        }
+      ]
+    }
+  ],
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::1234567890:role/ecsTaskExecutionRole"
+}
