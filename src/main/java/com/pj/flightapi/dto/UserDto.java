@@ -9,5 +9,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class FlightResponse {
+public class UserDto {
+
+    private Long id;
+    private String firstName;
+    private String lastName;
+    private String country;
+    private String phone;
+    private String email;
 }

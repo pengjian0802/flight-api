@@ -5,9 +5,12 @@ import com.pj.flightapi.common.ResultCode;
 import com.pj.flightapi.dto.AuthRequest;
 import com.pj.flightapi.dto.AuthResponse;
 import com.pj.flightapi.dto.RegisterRequest;
+import com.pj.flightapi.dto.UserDto;
 import com.pj.flightapi.entity.User;
 import com.pj.flightapi.repository.UserRepository;
+import com.pj.flightapi.service.UserService;
 import com.pj.flightapi.util.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,18 +24,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
-    private final AuthenticationManager authenticationManager;
-
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
-                          AuthenticationManager authenticationManager) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
-        this.authenticationManager = authenticationManager;
-    }
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private JwtUtil jwtUtil;
+    @Autowired
+    private AuthenticationManager authenticationManager;
+    @Autowired
+    private UserService userService;
 
     @PostMapping("/register")
     public Result<AuthResponse> register(@RequestBody RegisterRequest request) {
@@ -43,27 +42,29 @@ public class AuthController {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .build();
 
-        userRepository.save(user);
-
-        String token = jwtUtil.generateToken(user.getFirstName() + user.getLastName());
-        return Result.success(AuthResponse.builder().token(token).build());
+        UserDto userDto = userService.saveUser(user);
+        String token = jwtUtil.generateToken(request.getEmail());
+        return Result.success(AuthResponse.builder().token(token).user(userDto).build());
     }
 
     @PostMapping("/login")
     public Result<AuthResponse> authenticate(@RequestBody AuthRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
-        if (authentication.isAuthenticated()) {
-            String token = jwtUtil.generateToken(request.getEmail());
-            System.out.println(token);
-            User user = userRepository.findByEmail(request.getEmail()).orElse(null);
-            return Result.success(AuthResponse.builder().token(token).user(user).build());
-        } else {
-            return Result.error(ResultCode.USER_NOT_FOUND);
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+            if (authentication.isAuthenticated()) {
+                String token = jwtUtil.generateToken(request.getEmail());
+                UserDto userDto = userService.findUserByEmail(request.getEmail());
+                return Result.success(AuthResponse.builder().token(token).user(userDto).build());
+            } else {
+                return Result.error(ResultCode.USER_NOT_FOUND);
+            }
+        } catch (Exception e) {
+            return Result.error(ResultCode.UNAUTHORIZED);
         }
     }
 }

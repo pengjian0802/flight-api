@@ -16,4 +16,5 @@ public class FlightRequest {
     private String departureCity;
     private String arrivalCity;
     private LocalDate departureDate;
+    private Integer passengers;
 }
