@@ -6,11 +6,11 @@ on:
       - main
 
 env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY: springboot-app
-  ECS_CLUSTER: springboot-cluster
-  ECS_SERVICE: springboot-service
-  CONTAINER_NAME: springboot-container
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY: jianpeng/flight-api
+  ECS_CLUSTER: flight-api-cluster
+  ECS_SERVICE: flight-api-service
+  CONTAINER_NAME: flight-api-container
   JAR_FILE: target/*.jar
 
 jobs:

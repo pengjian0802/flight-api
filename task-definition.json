@@ -1,9 +1,9 @@
 {
-  "family": "springboot-task-definition",
+  "family": "flight-api-task-definition",
   "containerDefinitions": [
     {
-      "name": "springboot-container",
-      "image": "1234567890.dkr.ecr.us-east-1.amazonaws.com/springboot-app:latest",
+      "name": "flight-api-container",
+      "image": "381492153714.dkr.ecr.ap-southeast-1.amazonaws.com/jianpeng/flight-api:latest",
       "essential": true,
       "portMappings": [
         {
