@@ -6,10 +6,12 @@ import com.pj.flightapi.entity.Flight;
 import com.pj.flightapi.repository.FlightRepository;
 import com.pj.flightapi.service.FlightService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Service
 public class FlightServiceImpl implements FlightService {
 
     @Autowired

@@ -6,6 +6,7 @@ import com.pj.flightapi.entity.Flight;
 
 import java.util.List;
 
+
 public interface FlightService {
 
     List<FlightDto> queryFlightList(FlightRequest request);

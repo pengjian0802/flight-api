@@ -49,22 +49,15 @@ public class AuthController {
 
     @PostMapping("/login")
     public Result<AuthResponse> authenticate(@RequestBody AuthRequest request) {
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()
-                    )
-            );
-            if (authentication.isAuthenticated()) {
-                String token = jwtUtil.generateToken(request.getEmail());
-                UserDto userDto = userService.findUserByEmail(request.getEmail());
-                return Result.success(AuthResponse.builder().token(token).user(userDto).build());
-            } else {
-                return Result.error(ResultCode.USER_NOT_FOUND);
-            }
-        } catch (Exception e) {
-            return Result.error(ResultCode.UNAUTHORIZED);
+        UserDto userDto = userService.findUserByEmail(request.getEmail());
+        if (null == userDto) {
+            return Result.error(ResultCode.USER_NOT_FOUND);
         }
+        Boolean result = userService.validatePassword(userDto.getId(), request.getPassword(), passwordEncoder);
+        if (!result) {
+            return Result.error(ResultCode.INVALID_PASSWORD);
+        }
+        String token = jwtUtil.generateToken(request.getEmail());
+        return Result.success(AuthResponse.builder().token(token).user(userDto).build());
     }
 }
