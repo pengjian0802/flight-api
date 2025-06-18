@@ -18,8 +18,14 @@ public class Flight {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false)
+    private String airline; // 航空公司
+
+    @Column(nullable = false, length = 50)
     private String flightNumber; // 航班号
+
+    @Column(nullable = false, length = 50)
+    private String aircraft; // 飞机型号
 
     @Column(nullable = false)
     private String departureCity; // 出发城市

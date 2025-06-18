@@ -10,4 +10,6 @@ import java.util.List;
 public interface FlightService {
 
     List<FlightDto> queryFlightList(FlightRequest request);
+
+    FlightDto queryFlightDetail(Long id);
 }

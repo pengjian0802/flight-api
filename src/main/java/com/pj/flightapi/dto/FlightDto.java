@@ -1,9 +1,5 @@
 package com.pj.flightapi.dto;
 
-import com.pj.flightapi.entity.FlightSeat;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,7 +15,9 @@ import java.util.List;
 public class FlightDto {
 
     private Long id;
+    private String airline;
     private String flightNumber;
+    private String aircraft;
     private String departureCity;
     private String departureAirport;
     private String arrivalCity;
@@ -29,5 +27,5 @@ public class FlightDto {
     private String duration;
     private Integer totalSeats;
     private Integer availableSeats;
-    private List<FlightSeat> seats;
+    private List<FlightSeatDto> seats;
 }

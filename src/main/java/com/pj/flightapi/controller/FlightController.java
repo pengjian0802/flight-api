@@ -5,10 +5,7 @@ import com.pj.flightapi.dto.FlightDto;
 import com.pj.flightapi.dto.FlightRequest;
 import com.pj.flightapi.service.FlightService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -23,5 +20,11 @@ public class FlightController {
     public Result<List<FlightDto>> queryFlightList(@RequestBody FlightRequest flightRequest) {
         List<FlightDto> flightDtos = flightService.queryFlightList(flightRequest);
         return Result.success(flightDtos);
+    }
+
+    @GetMapping("/detail")
+    public Result<FlightDto> getFlightDetail(Long flightId) {
+        FlightDto flightDto = flightService.queryFlightDetail(flightId);
+        return Result.success(flightDto);
     }
 }
