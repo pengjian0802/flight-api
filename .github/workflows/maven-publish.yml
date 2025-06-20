@@ -11,7 +11,7 @@ env:
   ECS_CLUSTER: pengjian-flight-api-cluster
   ECS_SERVICE: pengjian-flight-api-service
   CONTAINER_NAME: flight-api-container
-  IMAGE_TAG: latest  # 全局定义IMAGE_TAG
+  IMAGE_URI: jianpeng/flight-api:latest
   JAR_FILE: target/*.jar
 
 jobs:
@@ -67,13 +67,9 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          # 使用全局定义的IMAGE_TAG，无需重复定义
+#          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: latest
         run: |
-          # 调试输出
-          echo "Building image with tag: $IMAGE_TAG"
-          echo "ECR_REPOSITORY: $ECR_REPOSITORY"
-          echo "ECR_REGISTRY: $ECR_REGISTRY"
-          
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
@@ -88,11 +84,7 @@ jobs:
 
       - name: debug Image_URI
         run: |
-          echo "IMAGE_URI: ${{ env.IMAGE_URI }}"
-          echo "CONTAINER_NAME: ${{ env.CONTAINER_NAME }}"
-          # 这些变量在deploy作业中未定义，不应使用
-          # echo "ECR_REGISTRY: $ECR_REGISTRY"
-          # echo "IMAGE_TAG: $IMAGE_TAG"
+          echo "IMG_URI: ${{ env.IMAGE_URI }}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -107,7 +99,6 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
-          # 使用正确设置的IMAGE_URI环境变量
           image: ${{ env.IMAGE_URI }}
 
       - name: Deploy to Amazon ECS
