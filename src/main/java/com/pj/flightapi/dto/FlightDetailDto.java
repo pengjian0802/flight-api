@@ -14,7 +14,7 @@ import java.util.Map;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class FlightDto {
+public class FlightDetailDto {
 
     private Long id;
     private String airline;
@@ -29,5 +29,5 @@ public class FlightDto {
     private String duration;
     private Integer totalSeats;
     private Integer availableSeats;
-    private Map<FlightSeat.SeatType, Double> priceMap;
+    private List<FlightSeatDto> seats;
 }

@@ -5,24 +5,27 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
-@Table(name = "booking")
+@Table(name = "pay_card")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Booking {
+public class PayCard {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long userId;
-    private Long flightId;
-    private Long payCardId;
-    private String status;
-    private LocalDateTime bookingTime;
-    private Double totalPrice;
+    private CardType cardType;
+    private String cardNumber;
+    private String cvv;
+    private LocalDate expireDate;
+    private String cardHolderName;
+
+    public enum CardType {
+        Visa, MasterCard, AmericanExpress
+    }
 }

@@ -1,6 +1,7 @@
 package com.pj.flightapi.controller;
 
 import com.pj.flightapi.common.Result;
+import com.pj.flightapi.dto.FlightDetailDto;
 import com.pj.flightapi.dto.FlightDto;
 import com.pj.flightapi.dto.FlightRequest;
 import com.pj.flightapi.service.FlightService;
@@ -22,9 +23,9 @@ public class FlightController {
         return Result.success(flightDtos);
     }
 
-    @GetMapping("/detail")
-    public Result<FlightDto> getFlightDetail(Long flightId) {
-        FlightDto flightDto = flightService.queryFlightDetail(flightId);
-        return Result.success(flightDto);
+    @GetMapping("/detail/{flightId}")
+    public Result<FlightDetailDto> getFlightDetail(@PathVariable Long flightId) {
+        FlightDetailDto flightDetailDto = flightService.queryFlightDetail(flightId);
+        return Result.success(flightDetailDto);
     }
 }

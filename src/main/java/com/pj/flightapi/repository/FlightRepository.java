@@ -2,6 +2,9 @@ package com.pj.flightapi.repository;
 
 import com.pj.flightapi.entity.Flight;
 import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -19,6 +22,10 @@ public interface FlightRepository extends JpaRepository<Flight, Long>, JpaSpecif
             String arrivalCity,
             LocalDate departureDate,
             Integer passengers) {
+
+        // 创建一个PageRequest对象，限制返回20条记录，按departureTime升序排列
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("departureTime").ascending());
+
         return findAll((root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -40,7 +47,8 @@ public interface FlightRepository extends JpaRepository<Flight, Long>, JpaSpecif
             if (passengers != null && passengers > 0) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("availableSeats"), passengers));
             }
+
             return cb.and(predicates.toArray(new Predicate[0]));
-        });
+        }, pageable).getContent(); // 获取分页结果中的内容列表
     }
 }

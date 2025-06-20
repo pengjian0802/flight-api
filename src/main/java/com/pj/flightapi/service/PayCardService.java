@@ -3,14 +3,14 @@ package com.pj.flightapi.service;
 import com.pj.flightapi.dto.FlightDetailDto;
 import com.pj.flightapi.dto.FlightDto;
 import com.pj.flightapi.dto.FlightRequest;
-import com.pj.flightapi.entity.Flight;
+import com.pj.flightapi.dto.PayCardDto;
 
 import java.util.List;
 
 
-public interface FlightService {
+public interface PayCardService {
 
-    List<FlightDto> queryFlightList(FlightRequest request);
+    List<PayCardDto> queryPayCardList(Long userId);
 
-    FlightDetailDto queryFlightDetail(Long id);
+    PayCardDto savePayCard(PayCardDto payCardDto);
 }

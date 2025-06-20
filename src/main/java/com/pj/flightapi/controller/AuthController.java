@@ -39,6 +39,8 @@ public class AuthController {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .email(request.getEmail())
+                .country(request.getCountry())
+                .phone(request.getPhone())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .build();
 
