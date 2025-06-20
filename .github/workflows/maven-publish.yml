@@ -6,10 +6,10 @@ on:
       - main
 
 env:
-  AWS_REGION: ap-southeast-1
+  AWS_REGION: us-east-1
   ECR_REPOSITORY: jianpeng/flight-api
-  ECS_CLUSTER: flight-api-cluster
-  ECS_SERVICE: flight-api-service
+  ECS_CLUSTER: pengjian-flight-api-cluster
+  ECS_SERVICE: pengjian-flight-api-service
   CONTAINER_NAME: flight-api-container
   JAR_FILE: target/*.jar
 
