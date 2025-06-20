@@ -11,6 +11,7 @@ env:
   ECS_CLUSTER: pengjian-flight-api-cluster
   ECS_SERVICE: pengjian-flight-api-service
   CONTAINER_NAME: flight-api-container
+  IMAGE_TAG: latest
   JAR_FILE: target/*.jar
 
 jobs:
@@ -67,7 +68,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
 #          IMAGE_TAG: ${{ github.sha }}
-          IMAGE_TAG: latest
+#          IMAGE_TAG: latest
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -100,7 +101,8 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ env.IMAGE_URI }}
+#          image: ${{ env.IMAGE_URI }}
+          image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
