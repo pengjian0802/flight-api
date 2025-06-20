@@ -11,7 +11,7 @@ env:
   ECS_CLUSTER: pengjian-flight-api-cluster
   ECS_SERVICE: pengjian-flight-api-service
   CONTAINER_NAME: flight-api-container
-  IMAGE_URI: jianpeng/flight-api:latest
+  IMAGE_URI: 381492153714.dkr.ecr.us-east-1.amazonaws.com/jianpeng/flight-api:latest
   JAR_FILE: target/*.jar
 
 jobs:
