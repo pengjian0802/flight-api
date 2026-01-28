@@ -1,0 +1,135 @@
+trigger:
+  branches:
+    include:
+      - main  # 监听 main 分支的代码提交
+  paths:
+    exclude:
+      - README.md  # 排除 README.md 变更触发流水线
+
+pr:
+  - main  # 对 main 分支的 PR 也执行流水线（可选）
+
+variables:
+  # 全局变量（替换为你的实际值）
+  ACR_REGISTRY: "<你的ACR名称>.azurecr.io"
+  APP_NAME: "node-devops-demo"
+  OCP_NAMESPACE: "devops"
+  TAG: "$(Build.BuildId)-$(Build.SourceVersionShort)"  # 构建ID+Git短哈希作为镜像标签
+
+stages:
+  # 阶段1：代码构建 & 单元测试
+  - stage: BuildAndTest
+    displayName: "代码构建与单元测试"
+    pool:
+      vmImage: "ubuntu-latest"  # 使用 Azure DevOps 托管的 Ubuntu 代理
+    jobs:
+      - job: BuildTest
+        displayName: "构建和测试"
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: "18.x"
+            displayName: "安装 Node.js"
+
+          - script: |
+              npm install
+              npm run test
+            displayName: "安装依赖并执行单元测试"
+
+  # 阶段2：构建并推送镜像到 ACR
+  - stage: BuildAndPushImage
+    displayName: "构建并推送镜像到 ACR"
+    dependsOn: BuildAndTest  # 依赖上一阶段成功
+    condition: succeeded()
+    pool:
+      vmImage: "ubuntu-latest"
+    jobs:
+      - job: BuildPush
+        displayName: "构建镜像"
+        steps:
+          # 登录 ACR（使用已配置的服务连接）
+          - task: Docker@2
+            displayName: "登录 Azure ACR"
+            inputs:
+              command: login
+              containerRegistry: "acr-service-connection"  # 对应你配置的 ACR 服务连接名称
+
+          # 构建并推送镜像
+          - task: Docker@2
+            displayName: "构建并推送镜像"
+            inputs:
+              command: buildAndPush
+              repository: $(APP_NAME)
+              dockerfile: "$(Build.SourcesDirectory)/Dockerfile"  # 指向 GitHub 仓库中的 Dockerfile
+              containerRegistry: "acr-service-connection"
+              tags: |
+                $(TAG)
+                latest
+
+          # 登出 ACR
+          - task: Docker@2
+            displayName: "登出 ACR"
+            inputs:
+              command: logout
+              containerRegistry: "acr-service-connection"
+
+  # 阶段3：部署到 OCP 集群
+  - stage: DeployToOCP
+    displayName: "部署到 OCP 集群"
+    dependsOn: BuildAndPushImage
+    condition: succeeded()
+    pool:
+      vmImage: "ubuntu-latest"
+    jobs:
+      - job: Deploy
+        displayName: "执行部署"
+        steps:
+          # 替换部署清单中的镜像标签
+          - task: replacetokens@6
+            displayName: "替换镜像标签"
+            inputs:
+              rootDirectory: "$(Build.SourcesDirectory)/k8s"
+              targetFiles: "deployment.yaml"
+              encoding: "auto"
+              tokenPattern: "default"
+              tokenPrefix: "#{"
+              tokenSuffix: "}#"
+              useLegacyPattern: false
+              enableTelemetry: true
+            env:
+              IMAGE_TAG: $(ACR_REGISTRY)/$(APP_NAME):$(TAG)
+
+          # 使用 kubectl/oc 部署到 OCP
+          - task: KubernetesManifest@1
+            displayName: "部署到 OCP 集群"
+            inputs:
+              action: "deploy"
+              connectionType: "Kubernetes Service Connection"
+              kubernetesServiceConnection: "ocp-service-connection"  # 对应你配置的 OCP 服务连接名称
+              namespace: $(OCP_NAMESPACE)
+              manifests: |
+                $(Build.SourcesDirectory)/k8s/deployment.yaml
+                $(Build.SourcesDirectory)/k8s/service.yaml
+                $(Build.SourcesDirectory)/k8s/route.yaml
+              containers: "$(ACR_REGISTRY)/$(APP_NAME):$(TAG)"
+              imagePullSecrets: "acr-secret"  # 对应 OCP 中配置的 ACR 拉取凭证
+
+          # 验证部署状态
+          - task: Kubernetes@1
+            displayName: "验证 OCP 部署"
+            inputs:
+              connectionType: "Kubernetes Service Connection"
+              kubernetesServiceConnection: "ocp-service-connection"
+              namespace: $(OCP_NAMESPACE)
+              command: "wait"
+              arguments: "deployment/$(APP_NAME) --for=condition=Available --timeout=300s"
+
+          # 获取应用访问地址
+          - task: Kubernetes@1
+            displayName: "获取应用访问地址"
+            inputs:
+              connectionType: "Kubernetes Service Connection"
+              kubernetesServiceConnection: "ocp-service-connection"
+              namespace: $(OCP_NAMESPACE)
+              command: "get"
+              arguments: "route $(APP_NAME) -o jsonpath='应用访问地址: https://{.spec.host}\\n'"
