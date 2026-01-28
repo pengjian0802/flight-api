@@ -9,47 +9,97 @@ trigger:
 pr:
   - main  # 对 main 分支的 PR 也执行流水线（可选）
 
+# 定义构建代理（推荐 Ubuntu，兼容 Docker/OCP 命令）
+pool:
+  vmImage: 'ubuntu-latest'
+
 variables:
-  # 全局变量（替换为你的实际值）
-  ACR_REGISTRY: "<你的ACR名称>.azurecr.io"
-  APP_NAME: "node-devops-demo"
-  OCP_NAMESPACE: "devops"
-  TAG: "$(Build.BuildId)-$(Build.SourceVersionShort)"  # 构建ID+Git短哈希作为镜像标签
+  # ========== 基础配置 ==========
+  PROJECT_NAME: 'flight-api'          # 项目名称
+  GITHUB_REPO_NAME: 'pengjian0802/flight-api' # GitHub 仓库名
+  SERVICE_CONNECTION_GITHUB: 'GitHub-Connection' # GitHub 服务连接名
+
+  # ========== ACR 配置 ==========
+  ACR_NAME: 'flightapiacr'            # ACR 实例名称（小写）
+  ACR_LOGIN_SERVER: 'flightapiacr.azurecr.io' # ACR 登录地址（Azure 门户可查）
+  SERVICE_CONNECTION_ACR: 'ACR-Connection'    # ACR 服务连接名
+  DOCKER_IMAGE_NAME: 'flight-api'     # 镜像名称
+  DOCKER_IMAGE_TAG: '$(Build.BuildId)' # 镜像标签（用构建ID保证唯一）
+
+  # ========== OCP 配置 ==========
+  SERVICE_CONNECTION_OCP: 'OCP-Connection'     # OCP 服务连接名（Azure DevOps 中配置）
+  OCP_NAMESPACE: 'flight-api-prod'    # OCP 目标命名空间
+  OCP_DEPLOYMENT_NAME: 'flight-api'   # OCP Deployment 名称
+  OCP_PORT: 8080                      # 应用暴露端口
+
+  # 定义版本变量
+  JAVA_VERSION: "18.x"
 
 stages:
-  # 阶段1：代码构建 & 单元测试
+  # 阶段1：拉取代码构建 & 单元测试
   - stage: BuildAndTest
-    displayName: "代码构建与单元测试"
+    displayName: "Code Build & Unit Test"
     pool:
       vmImage: "ubuntu-latest"  # 使用 Azure DevOps 托管的 Ubuntu 代理
     jobs:
-      - job: BuildTest
-        displayName: "构建和测试"
+      - job: Build
+        displayName: "Maven Build"
         steps:
-          - task: NodeTool@0
-            inputs:
-              versionSpec: "18.x"
-            displayName: "安装 Node.js"
+          # 步骤1：拉取代码
+          - checkout: git://$(GITHUB_REPO_NAME)@main
+            displayName: "Checkout Code from GitHub"
+            persistCredentials: true
 
-          - script: |
-              npm install
-              npm run test
-            displayName: "安装依赖并执行单元测试"
+          # 步骤2：安装指定版本的 JDK
+          - task: JavaToolInstaller@0
+            displayName: "Setup JDK $(JAVA_VERSION)"
+            inputs:
+              versionSpec: $(JAVA_VERSION)
+              jdkArchitectureOption: "x64"
+              jdkSourceOption: "PreInstalled"
+
+          # 步骤3：Maven 执行编译测试
+          - task: Maven@3
+            displayName: "Maven clean test"
+            inputs:
+              mavenPomFile: "pom.xml"
+              goals: "clean test"
+              options: "-Xmx2048m"
+              javaHomeOption: "JDKVersion"
+              jdkVersionOption: "$(JAVA_VERSION)"
+              publishJUnitResults: true
+              testResultsFiles: "**/surefire-reports/TEST-*.xml"
+
+          # 步骤4：maven 打包
+          - task: Maven@3
+            displayName: "Maven clean package"
+            inputs:
+              mavenPomFile: "pom.xml"
+              goals: "clean package -DskipTests"
+              options: "-Xmx2048m"
+              javaHomeOption: "JDKVersion"
+              jdkVersionOption: "$(JAVA_VERSION)"
+              publishJUnitResults: false
+
+          # 步骤5：上传构建 artifact
+          - task: PublishBuildArtifacts@1
+            displayName: "publish artifact"
+            inputs:
+              PathtoPublish: "$(Build.SourcesDirectory)/target/$(DOCKER_IMAGE_NAME)-$(DOCKER_IMAGE_TAG).jar"
+              ArtifactName: "flight-api-jar"
 
   # 阶段2：构建并推送镜像到 ACR
   - stage: BuildAndPushImage
     displayName: "构建并推送镜像到 ACR"
     dependsOn: BuildAndTest  # 依赖上一阶段成功
     condition: succeeded()
-    pool:
-      vmImage: "ubuntu-latest"
     jobs:
-      - job: BuildPush
-        displayName: "构建镜像"
+      - job: BuildImage
+        displayName: "Build and Push Image"
         steps:
           # 登录 ACR（使用已配置的服务连接）
           - task: Docker@2
-            displayName: "登录 Azure ACR"
+            displayName: "Login Azure ACR"
             inputs:
               command: login
               containerRegistry: "acr-service-connection"  # 对应你配置的 ACR 服务连接名称
@@ -60,7 +110,7 @@ stages:
             inputs:
               command: buildAndPush
               repository: $(APP_NAME)
-              dockerfile: "$(Build.SourcesDirectory)/Dockerfile"  # 指向 GitHub 仓库中的 Dockerfile
+              dockerfile: "Dockerfile"  # 指向 GitHub 仓库中的 Dockerfile
               containerRegistry: "acr-service-connection"
               tags: |
                 $(TAG)
