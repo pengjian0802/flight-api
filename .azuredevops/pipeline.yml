@@ -1,193 +1,25 @@
 trigger:
-  branches:
-    include:
-      - main  # 监听 main 分支的代码提交
-  paths:
-    exclude:
-      - README.md  # 排除 README.md 变更触发流水线
+  - main
 
 pr:
-  - main  # 对 main 分支的 PR 也执行流水线（可选）
+  - main
 
-# 定义构建代理（推荐 Ubuntu，兼容 Docker/OCP 命令）
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: ubuntu-latest
 
 variables:
-  # ========== 基础配置 ==========
-  PROJECT_NAME: 'flight-api'          # 项目名称
-  GITHUB_REPO_NAME: 'pengjian0802/flight-api' # GitHub 仓库名
-  GITHUB_CONN_NAME: 'github-service-connection' # GitHub 服务连接名
+  JAVA_VERSION: '17'
 
-  # ========== ACR 配置 ==========
-  ACR_NAME: 'flightapiacr'            # ACR 实例名称（小写）
-  ACR_LOGIN_SERVER: 'flightapiacr.azurecr.io' # ACR 登录地址（Azure 门户可查）
-  SERVICE_CONNECTION_ACR: 'ACR-Connection'    # ACR 服务连接名
-  DOCKER_IMAGE_NAME: 'flight-api'     # 镜像名称
-  DOCKER_IMAGE_TAG: '$(Build.BuildId)' # 镜像标签（用构建ID保证唯一）
+steps:
+  # 默认就会 checkout GitHub 公有仓库
+  - task: UseJavaVersion@1
+    inputs:
+      versionSpec: '$(JAVA_VERSION)'
+      architecture: x64
 
-  # ========== OCP 配置 ==========
-  SERVICE_CONNECTION_OCP: 'OCP-Connection'     # OCP 服务连接名（Azure DevOps 中配置）
-  OCP_NAMESPACE: 'flight-api-prod'    # OCP 目标命名空间
-  OCP_DEPLOYMENT_NAME: 'flight-api'   # OCP Deployment 名称
-  OCP_PORT: 8080                      # 应用暴露端口
-
-  # 定义版本变量
-  JAVA_VERSION: "18.x"
-
-stages:
-  # 阶段1：拉取代码构建 & 单元测试
-  - stage: BuildAndTest
-    displayName: "Code Build & Unit Test"
-    pool:
-      vmImage: "ubuntu-latest"  # 使用 Azure DevOps 托管的 Ubuntu 代理
-    jobs:
-      - job: Build
-        displayName: "Maven Build"
-        steps:
-          # 禁用默认 checkout 从 Azure DevOps 仓库拉取代码
-          - checkout: none
-
-          # 步骤1：通过GitHub服务拉取代码
-          - task: DownloadGitRepo@0
-            displayName: "Checkout Code from GitHub"
-            inputs:
-              repository: $(GITHUB_REPO_NAME)
-              branch: main
-              gitServiceConnection: $(GITHUB_CONN_NAME)  # 对应 Azure DevOps 中的 GitHub 服务连接名
-              destinationDirectory: $(Build.SourcesDirectory)  # 代码拉取到构建目录（与原 checkout 路径一致）
-              clean: true
-
-          # 步骤2：安装指定版本的 JDK
-          - task: JavaToolInstaller@0
-            displayName: "Setup JDK $(JAVA_VERSION)"
-            inputs:
-              versionSpec: $(JAVA_VERSION)
-              jdkArchitectureOption: "x64"
-              jdkSourceOption: "PreInstalled"
-
-          # 步骤3：Maven 执行编译测试
-          - task: Maven@3
-            displayName: "Maven clean test"
-            inputs:
-              mavenPomFile: "pom.xml"
-              goals: "clean test"
-              options: "-Xmx2048m"
-              javaHomeOption: "JDKVersion"
-              jdkVersionOption: "$(JAVA_VERSION)"
-              publishJUnitResults: true
-              testResultsFiles: "**/surefire-reports/TEST-*.xml"
-
-          # 步骤4：maven 打包
-          - task: Maven@3
-            displayName: "Maven clean package"
-            inputs:
-              mavenPomFile: "pom.xml"
-              goals: "clean package -DskipTests"
-              options: "-Xmx2048m"
-              javaHomeOption: "JDKVersion"
-              jdkVersionOption: "$(JAVA_VERSION)"
-              publishJUnitResults: false
-
-          # 步骤5：上传构建 artifact
-          - task: PublishBuildArtifacts@1
-            displayName: "publish artifact"
-            inputs:
-              PathtoPublish: "$(Build.SourcesDirectory)/target/$(DOCKER_IMAGE_NAME)-$(DOCKER_IMAGE_TAG).jar"
-              ArtifactName: "flight-api-jar"
-
-#  # 阶段2：构建并推送镜像到 ACR
-#  - stage: BuildAndPushImage
-#    displayName: "构建并推送镜像到 ACR"
-#    dependsOn: BuildAndTest  # 依赖上一阶段成功
-#    condition: succeeded()
-#    jobs:
-#      - job: BuildImage
-#        displayName: "Build and Push Image"
-#        steps:
-#          # 登录 ACR（使用已配置的服务连接）
-#          - task: Docker@2
-#            displayName: "Login Azure ACR"
-#            inputs:
-#              command: login
-#              containerRegistry: "acr-service-connection"  # 对应你配置的 ACR 服务连接名称
-#
-#          # 构建并推送镜像
-#          - task: Docker@2
-#            displayName: "构建并推送镜像"
-#            inputs:
-#              command: buildAndPush
-#              repository: $(APP_NAME)
-#              dockerfile: "Dockerfile"  # 指向 GitHub 仓库中的 Dockerfile
-#              containerRegistry: "acr-service-connection"
-#              tags: |
-#                $(TAG)
-#                latest
-#
-#          # 登出 ACR
-#          - task: Docker@2
-#            displayName: "登出 ACR"
-#            inputs:
-#              command: logout
-#              containerRegistry: "acr-service-connection"
-#
-#  # 阶段3：部署到 OCP 集群
-#  - stage: DeployToOCP
-#    displayName: "部署到 OCP 集群"
-#    dependsOn: BuildAndPushImage
-#    condition: succeeded()
-#    pool:
-#      vmImage: "ubuntu-latest"
-#    jobs:
-#      - job: Deploy
-#        displayName: "执行部署"
-#        steps:
-#          # 替换部署清单中的镜像标签
-#          - task: replacetokens@6
-#            displayName: "替换镜像标签"
-#            inputs:
-#              rootDirectory: "$(Build.SourcesDirectory)/k8s"
-#              targetFiles: "deployment.yaml"
-#              encoding: "auto"
-#              tokenPattern: "default"
-#              tokenPrefix: "#{"
-#              tokenSuffix: "}#"
-#              useLegacyPattern: false
-#              enableTelemetry: true
-#            env:
-#              IMAGE_TAG: $(ACR_REGISTRY)/$(APP_NAME):$(TAG)
-#
-#          # 使用 kubectl/oc 部署到 OCP
-#          - task: KubernetesManifest@1
-#            displayName: "部署到 OCP 集群"
-#            inputs:
-#              action: "deploy"
-#              connectionType: "Kubernetes Service Connection"
-#              kubernetesServiceConnection: "ocp-service-connection"  # 对应你配置的 OCP 服务连接名称
-#              namespace: $(OCP_NAMESPACE)
-#              manifests: |
-#                $(Build.SourcesDirectory)/k8s/deployment.yaml
-#                $(Build.SourcesDirectory)/k8s/service.yaml
-#                $(Build.SourcesDirectory)/k8s/route.yaml
-#              containers: "$(ACR_REGISTRY)/$(APP_NAME):$(TAG)"
-#              imagePullSecrets: "acr-secret"  # 对应 OCP 中配置的 ACR 拉取凭证
-#
-#          # 验证部署状态
-#          - task: Kubernetes@1
-#            displayName: "验证 OCP 部署"
-#            inputs:
-#              connectionType: "Kubernetes Service Connection"
-#              kubernetesServiceConnection: "ocp-service-connection"
-#              namespace: $(OCP_NAMESPACE)
-#              command: "wait"
-#              arguments: "deployment/$(APP_NAME) --for=condition=Available --timeout=300s"
-#
-#          # 获取应用访问地址
-#          - task: Kubernetes@1
-#            displayName: "获取应用访问地址"
-#            inputs:
-#              connectionType: "Kubernetes Service Connection"
-#              kubernetesServiceConnection: "ocp-service-connection"
-#              namespace: $(OCP_NAMESPACE)
-#              command: "get"
-#              arguments: "route $(APP_NAME) -o jsonpath='应用访问地址: https://{.spec.host}\\n'"
+  - task: Maven@4
+    inputs:
+      mavenPomFile: pom.xml
+      goals: clean verify
+      publishJUnitResults: true
+      testResultsFiles: '**/surefire-reports/TEST-*.xml'
