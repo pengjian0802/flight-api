@@ -45,22 +45,22 @@ steps:
       mavenAuthenticateFeed: false  # 若非Azure Artifacts私服，设为false
       effectivePomSkip: false
       sonarQubeRunAnalysis: false   # 如需SonarQube代码分析，设为true
-
-  # 步骤3：发布构建产物（jar/war包）到Azure Pipeline
-  - task: PublishBuildArtifacts@1
-    displayName: '发布构建产物'
-    inputs:
-      PathtoPublish: '$(BUILD_OUTPUT_DIR)'
-      ArtifactName: '$(ARTIFACT_NAME)'
-      publishLocation: 'Container'
-
-  # 可选步骤4：部署到Azure App Service（如需要部署）
-  - task: AzureWebApp@1
-    displayName: '部署到Azure App Service'
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))  # 仅main分支成功构建后部署
-    inputs:
-      azureSubscription: '你的Azure服务连接名称'  # 需提前在Azure DevOps配置
-      appType: 'webApp'
-      appName: '你的App Service名称'
-      package: '$(BUILD_OUTPUT_DIR)/*.jar'  # 适配jar包，若为war包改为*.war
-      runtimeStack: 'JAVA|17-java17'        # 对应Java版本
+#
+#  # 步骤3：发布构建产物（jar/war包）到Azure Pipeline
+#  - task: PublishBuildArtifacts@1
+#    displayName: '发布构建产物'
+#    inputs:
+#      PathtoPublish: '$(BUILD_OUTPUT_DIR)'
+#      ArtifactName: '$(ARTIFACT_NAME)'
+#      publishLocation: 'Container'
+#
+#  # 可选步骤4：部署到Azure App Service（如需要部署）
+#  - task: AzureWebApp@1
+#    displayName: '部署到Azure App Service'
+#    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))  # 仅main分支成功构建后部署
+#    inputs:
+#      azureSubscription: '你的Azure服务连接名称'  # 需提前在Azure DevOps配置
+#      appType: 'webApp'
+#      appName: '你的App Service名称'
+#      package: '$(BUILD_OUTPUT_DIR)/*.jar'  # 适配jar包，若为war包改为*.war
+#      runtimeStack: 'JAVA|17-java17'        # 对应Java版本
