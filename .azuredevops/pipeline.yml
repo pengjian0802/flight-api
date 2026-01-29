@@ -6,7 +6,8 @@ pr:
 
 # 定义构建代理池（使用Azure托管的Ubuntu代理）
 pool:
-  vmImage: 'ubuntu-latest'
+# vmImage: 'ubuntu-latest' 新的 Azure DevOps 组织没有托管并行构建（Hosted Parallelism） 额度，无法使用微软托管的代理池（比如 ubuntu-latest）运行 Pipeline
+  vmImage: Default
 
 # 定义变量（可根据项目调整）
 variables:
