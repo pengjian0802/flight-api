@@ -17,7 +17,7 @@ variables:
   # ========== 基础配置 ==========
   PROJECT_NAME: 'flight-api'          # 项目名称
   GITHUB_REPO_NAME: 'pengjian0802/flight-api' # GitHub 仓库名
-  SERVICE_CONNECTION_GITHUB: 'GitHub-Connection' # GitHub 服务连接名
+  GITHUB_CONN_NAME: 'github-service-connection' # GitHub 服务连接名
 
   # ========== ACR 配置 ==========
   ACR_NAME: 'flightapiacr'            # ACR 实例名称（小写）
@@ -45,10 +45,18 @@ stages:
       - job: Build
         displayName: "Maven Build"
         steps:
-          # 步骤1：拉取代码
-          - checkout: git://GitHub/$(GITHUB_REPO_NAME)@main
+          # 禁用默认 checkout 从 Azure DevOps 仓库拉取代码
+          - checkout: none
+
+          # 步骤1：通过GitHub服务拉取代码
+          - task: DownloadGitRepo@0
             displayName: "Checkout Code from GitHub"
-            persistCredentials: true
+            inputs:
+              repository: $(GITHUB_REPO_NAME)
+              branch: main
+              gitServiceConnection: $(GITHUB_CONN_NAME)  # 对应 Azure DevOps 中的 GitHub 服务连接名
+              destinationDirectory: $(Build.SourcesDirectory)  # 代码拉取到构建目录（与原 checkout 路径一致）
+              clean: true
 
           # 步骤2：安装指定版本的 JDK
           - task: JavaToolInstaller@0
