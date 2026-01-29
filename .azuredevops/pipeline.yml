@@ -46,7 +46,7 @@ stages:
         displayName: "Maven Build"
         steps:
           # 步骤1：拉取代码
-          - checkout: git://$(GITHUB_REPO_NAME)@main
+          - checkout: git://GitHub/$(GITHUB_REPO_NAME)@main
             displayName: "Checkout Code from GitHub"
             persistCredentials: true
 
