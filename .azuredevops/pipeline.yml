@@ -53,10 +53,6 @@ stages:
               effectivePomSkip: false
               sonarQubeRunAnalysis: ture   # 如需SonarQube代码分析，设为true
 
-  - stage: UploadArtifacts
-    jobs:
-      - job: upload
-        steps:
           # 步骤3：上传JAR包为Pipeline制品
           - task: PublishBuildArtifacts@1
             displayName: '发布JAR包为Pipeline制品'
