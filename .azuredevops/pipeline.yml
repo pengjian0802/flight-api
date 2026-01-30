@@ -12,7 +12,7 @@ pool:
 # 定义变量（可根据项目调整）
 variables:
   # Java版本
-  JAVA_VERSION: '17'
+  JAVA_VERSION: '21'
   # Maven/Gradle构建输出目录
   BUILD_OUTPUT_DIR: 'target'
   # 项目打包后的jar/war名称（根据实际情况修改）
@@ -21,31 +21,37 @@ variables:
   BUILD_TOOL: 'maven'
 
 # 构建步骤
-steps:
-  # 步骤1：安装指定版本的Java
-  - task: JavaToolInstaller@0
-    displayName: '安装 Java $(JAVA_VERSION)'
-    inputs:
-      versionSpec: '$(JAVA_VERSION)'
-      jdkArchitectureOption: 'x64'
-      jdkSourceOption: 'PreInstalled'
+stages:
+  - stage: BuildAndTest
+    displayName: "Code Build & Unit Test"
+    jobs:
+      - job: Build
+        displayName: "Maven Build"
+        steps:
+          # 步骤1：安装指定版本的Java
+          - task: JavaToolInstaller@0
+            displayName: '安装 Java $(JAVA_VERSION)'
+            inputs:
+              versionSpec: '$(JAVA_VERSION)'
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
 
-  # 步骤2：根据构建工具选择构建命令（Maven）
-  - task: Maven@4
-    displayName: 'Maven 清理、编译、测试、打包'
-    condition: eq(variables.BUILD_TOOL, 'maven')
-    inputs:
-      mavenPomFile: 'pom.xml'
-      goals: 'clean package'
-      options: '-DskipTests=false'  # 不跳过测试（如需跳过改为true）
-      publishJUnitResults: true     # 自动发布JUnit测试结果到Azure DevOps
-      testResultsFiles: '**/surefire-reports/TEST-*.xml'
-      javaHomeOption: 'JDKVersion'
-      jdkVersionOption: '$(JAVA_VERSION)'
-      mavenVersionOption: 'Default'
-      mavenAuthenticateFeed: false  # 若非Azure Artifacts私服，设为false
-      effectivePomSkip: false
-      sonarQubeRunAnalysis: false   # 如需SonarQube代码分析，设为true
+          # 步骤2：根据构建工具选择构建命令（Maven）
+          - task: Maven@4
+            displayName: 'Maven 清理、编译、测试、打包'
+            condition: eq(variables.BUILD_TOOL, 'maven')
+            inputs:
+              mavenPomFile: 'pom.xml'
+              goals: 'clean package'
+              options: '-DskipTests=false'  # 不跳过测试（如需跳过改为true）
+              publishJUnitResults: true     # 自动发布JUnit测试结果到Azure DevOps
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '$(JAVA_VERSION)'
+              mavenVersionOption: 'Default'
+              mavenAuthenticateFeed: false  # 若非Azure Artifacts私服，设为false
+              effectivePomSkip: false
+              sonarQubeRunAnalysis: false   # 如需SonarQube代码分析，设为true
 #
 #  # 步骤3：发布构建产物（jar/war包）到Azure Pipeline
 #  - task: PublishBuildArtifacts@1
